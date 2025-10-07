@@ -248,61 +248,87 @@ graph TB
 ### Multi-Agent Collaboration Flow
 
 ```mermaid
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#1e90ff",
+    "primaryTextColor": "#ffffff",
+    "primaryBorderColor": "#0b3d91",
+    "lineColor": "#9aa0a6",
+    "secondaryColor": "#2ecc71",
+    "tertiaryColor": "#f39c12",
+    "fontFamily": "Inter, Roboto, sans-serif",
+    "background": "transparent"
+  },
+  "sequence": {
+    "mirrorActors": false,
+    "useMaxWidth": true,
+    "rightAngles": true,
+    "showSequenceNumbers": true,
+    "width": 320
+  }
+}}%%
+
 sequenceDiagram
     autonumber
-    participant User
-    participant API as FastAPI Server
-    participant Coord as Coordinator
-    participant Agent1
-    participant Agent2
-    participant Agent3
-    participant CKM as CKM Network
-    participant Gap as Gap Detector
-    participant Policy as Policy Network
-    participant Agg as Aggregator
-    participant LLM as OpenRouter
+    participant User as 👤 **User**
+    participant API as 🚀 **FastAPI Server**
+    participant Coord as 🧠 **Coordinator**
+    participant Agent1 as 🤖 **Agent 1**
+    participant Agent2 as 🤖 **Agent 2**
+    participant Agent3 as 🤖 **Agent 3**
+    participant CKM as 🧬 **CKM Network**
+    participant Gap as ⚡ **Gap Detector**
+    participant Policy as 🎮 **Policy Network**
+    participant Agg as ⚖️ **Aggregator**
+    participant LLM as ☁️ **OpenRouter LLM**
 
-    User->>API: POST /collaborate<br/>{query, num_agents: 3}
-    API->>Coord: Initialize session
+    %% === Session Init ===
+    User->>API: **POST /collaborate**<br/>{query, num_agents: 3}
+    API->>Coord: Initialize collaboration session
     Coord->>Policy: Select optimal agents
-    Policy-->>Coord: [Agent1, Agent2, Agent3]
+    Policy-->>Coord: Return [Agent1, Agent2, Agent3]
 
-    par Activate Agents
+    %% === Parallel Activation ===
+    par 🔧 **Activate Agents**
         Coord->>Agent1: Assign subtask
         Coord->>Agent2: Assign subtask
         Coord->>Agent3: Assign subtask
     end
 
-    rect rgb(230, 245, 255)
-        Note over Agent1,LLM: Round 1: Independent Processing
-        Agent1->>LLM: Process query
-        Agent2->>LLM: Process query
-        Agent3->>LLM: Process query
+    %% === Round 1: Independent Processing ===
+    rect rgb(230,245,255)
+        Note over Agent1,LLM: 🌀 **Round 1 — Independent Processing**
+        Agent1->>LLM: Send query
+        Agent2->>LLM: Send query
+        Agent3->>LLM: Send query
         LLM-->>Agent1: Initial response
         LLM-->>Agent2: Initial response
         LLM-->>Agent3: Initial response
     end
 
-    rect rgb(255, 245, 230)
-        Note over Agent1,Gap: Cognitive Knowledge Modeling
+    %% === CKM + Gap Detection ===
+    rect rgb(255,245,230)
+        Note over Agent1,Gap: 🧠 **Cognitive Knowledge Modeling**
         Agent1->>CKM: Update knowledge state
         Agent2->>CKM: Update knowledge state
         Agent3->>CKM: Update knowledge state
-        CKM-->>Agent1: CKM vectors (256-dim)
-        CKM-->>Agent2: CKM vectors (256-dim)
-        CKM-->>Agent3: CKM vectors (256-dim)
+        CKM-->>Agent1: 256-dim CKM vectors
+        CKM-->>Agent2: 256-dim CKM vectors
+        CKM-->>Agent3: 256-dim CKM vectors
 
         Agent1->>Gap: Detect knowledge gaps
         Agent2->>Gap: Detect knowledge gaps
         Agent3->>Gap: Detect knowledge gaps
-        Gap-->>Agent1: Gap score: 0.82 (HIGH)
-        Gap-->>Agent2: Gap score: 0.45 (MEDIUM)
-        Gap-->>Agent3: Gap score: 0.78 (HIGH)
+        Gap-->>Agent1: Gap score = 0.82 (**HIGH**)
+        Gap-->>Agent2: Gap score = 0.45 (**MEDIUM**)
+        Gap-->>Agent3: Gap score = 0.78 (**HIGH**)
     end
 
-    alt High Cognitive Gaps Detected
-        rect rgb(245, 255, 230)
-            Note over Agent1,Agent3: Round 2: Collaborative Communication
+    %% === Collaboration Round ===
+    alt ⚠️ **High Cognitive Gaps Detected**
+        rect rgb(245,255,230)
+            Note over Agent1,Agent3: 🤝 **Round 2 — Collaborative Communication**
             Agent1->>Coord: Broadcast insight
             Agent2->>Coord: Request clarification from Agent1
             Agent3->>Coord: Share complementary info
@@ -311,128 +337,70 @@ sequenceDiagram
             Coord->>Agent2: Deliver Agent1 + Agent3 messages
             Coord->>Agent3: Deliver Agent1 + Agent2 messages
 
-            par Refine with New Knowledge
-                Agent1->>LLM: Refine response
-                Agent2->>LLM: Refine response
-                Agent3->>LLM: Refine response
+            par 🔄 **Refinement Phase**
+                Agent1->>LLM: Refine response with new context
+                Agent2->>LLM: Refine response with new context
+                Agent3->>LLM: Refine response with new context
             end
         end
 
-        Coord->>Coord: Check convergence (entropy < 0.3)
+        Coord->>Coord: Check convergence (Entropy < 0.3)
 
-        alt Converged
-            Note over Coord,Agg: Consensus Reached
-        else Not Converged
-            Note over Coord: Continue to Round 3...
+        alt ✅ **Converged**
+            Note over Coord,Agg: 🏁 **Consensus Reached**
+        else 🔁 **Not Converged**
+            Note over Coord: Continue to Round 3 …
         end
     end
 
-    Coord->>Agg: Aggregate responses
+    %% === Aggregation + Final Output ===
+    Coord->>Agg: Aggregate agent responses
     Agg->>Agg: Confidence-weighted synthesis
-    Agg-->>API: Final answer + metrics
-    API-->>User: Response with collaboration details
+    Agg-->>API: Final answer + collaboration metrics
+    API-->>User: 📨 **Response with collaboration summary**
 ```
 
-### Neural Architecture Deep Dive
+---
 
-```mermaid
-graph LR
-    subgraph "Input Layer"
-        Q[Query Text]
-        H[Dialogue History<br/>N messages]
-        C[Task Context]
-    end
+## 💻 System Requirements
 
-    subgraph "Embedding Layer"
-        EMB[Cohere Embeddings<br/>embed-english-v3.0<br/>1024-dim]
-    end
+### Minimum Requirements
 
-    subgraph "State Encoder"
-        LSTM1[Bi-LSTM Layer 1<br/>512 hidden units<br/>Dropout 0.3]
-        LSTM2[Bi-LSTM Layer 2<br/>512 hidden units<br/>Dropout 0.3]
-        POOL[Max Pooling<br/>+ Layer Norm]
-        STATE_OUT[State Vector<br/>512-dim]
-    end
+| Component | Requirement |
+|-----------|-------------|
+| **OS** | Linux (Ubuntu 20.04+), macOS 12+, Windows 10+ with WSL2 |
+| **CPU** | 4 cores / 8 threads |
+| **RAM** | 8 GB |
+| **Storage** | 10 GB free space (SSD recommended) |
+| **Python** | 3.10 or higher |
+| **Docker** | 20.10+ (for containerized deployment) |
+| **GPU** | Optional (CUDA 11.8+ for training) |
 
-    subgraph "CKM Network"
-        CKM_EMB[Agent Response<br/>Embeddings]
-        CKM_LSTM[Bi-LSTM<br/>256 hidden units]
-        ATTN[Multi-Head Attention<br/>4 heads, 64 dim/head]
-        CKM_NORM[Layer Norm]
-        CKM_OUT[Knowledge State<br/>256-dim per agent]
-    end
+### Recommended Production Setup
 
-    subgraph "Gap Detector"
-        CONCAT1[Concatenate<br/>State + CKM States]
-        FC1[Linear 512→256<br/>+ ReLU + Dropout 0.2]
-        FC2[Linear 256→128<br/>+ ReLU + Dropout 0.2]
-        FC3[Linear 128→64<br/>+ ReLU]
-        FC4[Linear 64→1<br/>+ Sigmoid]
-        GAP_OUT[Gap Score<br/>0.0 to 1.0]
-    end
+| Component | Recommendation |
+|-----------|----------------|
+| **CPU** | 8+ cores (16+ threads) |
+| **RAM** | 32 GB |
+| **GPU** | NVIDIA GPU with 16GB+ VRAM (for training) |
+| **Storage** | 50+ GB SSD |
+| **Network** | 100 Mbps+ bandwidth |
 
-    subgraph "Policy Network (PPO)"
-        CONCAT2[Concatenate<br/>State + CKM + Gap<br/>Combined Features]
+### Required API Keys
 
-        ACTOR_FC1[Actor FC 512→256<br/>+ Tanh]
-        ACTOR_FC2[Actor FC 256→128<br/>+ Tanh]
-        ACTOR_OUT[Action Logits<br/>+ Softmax<br/>Num Agents]
+You'll need API keys from the following providers:
 
-        CRITIC_FC1[Critic FC 512→256<br/>+ Tanh]
-        CRITIC_FC2[Critic FC 256→1<br/>Linear]
-        VALUE_OUT[State Value Estimate]
-    end
+1. **OpenRouter** - For LLM access (Claude, GPT-4, Llama, etc.)
+   - Sign up: https://openrouter.ai/
+   - Cost: Pay-per-use, ~$0.001-0.05 per request depending on model
 
-    subgraph "Output Layer"
-        ACTION[Agent Selection<br/>Task Allocation]
-        REWARD[Reward Signal<br/>Task Success +<br/>Efficiency Bonus]
-    end
+2. **Cohere** - For embeddings
+   - Sign up: https://cohere.com/
+   - Free tier: 100 requests/month, then pay-per-use
 
-    Q --> EMB
-    H --> EMB
-    C --> EMB
-
-    EMB --> LSTM1
-    LSTM1 --> LSTM2
-    LSTM2 --> POOL
-    POOL --> STATE_OUT
-
-    STATE_OUT --> CKM_EMB
-    CKM_EMB --> CKM_LSTM
-    CKM_LSTM --> ATTN
-    ATTN --> CKM_NORM
-    CKM_NORM --> CKM_OUT
-
-    STATE_OUT --> CONCAT1
-    CKM_OUT --> CONCAT1
-    CONCAT1 --> FC1
-    FC1 --> FC2
-    FC2 --> FC3
-    FC3 --> FC4
-    FC4 --> GAP_OUT
-
-    STATE_OUT --> CONCAT2
-    CKM_OUT --> CONCAT2
-    GAP_OUT --> CONCAT2
-
-    CONCAT2 --> ACTOR_FC1
-    ACTOR_FC1 --> ACTOR_FC2
-    ACTOR_FC2 --> ACTOR_OUT
-
-    CONCAT2 --> CRITIC_FC1
-    CRITIC_FC1 --> CRITIC_FC2
-    CRITIC_FC2 --> VALUE_OUT
-
-    ACTOR_OUT --> ACTION
-    VALUE_OUT --> ACTION
-    ACTION --> REWARD
-
-    style STATE_OUT fill:#95e1d3,stroke:#38ada9,stroke-width:2px
-    style CKM_OUT fill:#74b9ff,stroke:#0984e3,stroke-width:2px
-    style GAP_OUT fill:#ffeaa7,stroke:#fdcb6e,stroke-width:2px
-    style ACTOR_OUT fill:#fd79a8,stroke:#e84393,stroke-width:2px
-    style VALUE_OUT fill:#a29bfe,stroke:#6c5ce7,stroke-width:2px
-```
+3. **WandB** (Optional) - For training metrics and visualization
+   - Sign up: https://wandb.ai/
+   - Free tier: Unlimited personal projects
 
 ---
 

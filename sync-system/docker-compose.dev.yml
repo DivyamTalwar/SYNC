@@ -1,0 +1,62 @@
+# ============================================================================
+# SYNC SYSTEM - DEVELOPMENT DOCKER COMPOSE
+# Simplified stack for local development with hot-reload
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # SYNC API Service (Development Mode)
+  # ============================================================================
+  sync-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sync-api-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - SYNC_ENV=development
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_WORKERS=1
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - COHERE_API_KEY=${COHERE_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=devredis
+      - LOG_LEVEL=DEBUG
+    volumes:
+      # Mount source code for hot-reload
+      - ./src:/app/src:ro
+      - ./api:/app/api:ro
+      - sync-dev-checkpoints:/app/checkpoints
+      - sync-dev-results:/app/results
+    depends_on:
+      - redis
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks:
+      - sync-dev-network
+
+  # ============================================================================
+  # Redis Cache (Development)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: sync-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass devredis
+    networks:
+      - sync-dev-network
+
+volumes:
+  sync-dev-checkpoints:
+  sync-dev-results:
+
+networks:
+  sync-dev-network:
+    driver: bridge
