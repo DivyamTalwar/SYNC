@@ -251,13 +251,20 @@ graph TB
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#1e90ff",
-    "primaryTextColor": "#ffffff",
-    "primaryBorderColor": "#0b3d91",
-    "lineColor": "#9aa0a6",
-    "secondaryColor": "#2ecc71",
-    "tertiaryColor": "#f39c12",
     "fontFamily": "Inter, Roboto, sans-serif",
+    "fontSize": "16px",
+    "actorFontSize": "18px",
+    "noteTextColor": "#000000",
+    "actorTextColor": "#000000",
+    "primaryTextColor": "#000000",
+    "signalTextColor": "#000000",
+    "lineColor": "#1a1a1a",
+    "actorBorder": "#1e90ff",
+    "actorBkg": "#eaf4ff",
+    "noteBkgColor": "#f9fafb",
+    "noteBorderColor": "#d0d0d0",
+    "activationBorderColor": "#1e90ff",
+    "activationBkgColor": "#f0f8ff",
     "background": "transparent"
   },
   "sequence": {
@@ -265,7 +272,7 @@ graph TB
     "useMaxWidth": true,
     "rightAngles": true,
     "showSequenceNumbers": true,
-    "width": 320
+    "width": 360
   }
 }}%%
 
@@ -283,13 +290,13 @@ sequenceDiagram
     participant Agg as ⚖️ **Aggregator**
     participant LLM as ☁️ **OpenRouter LLM**
 
-    %% === Session Init ===
+    %% === Session Initialization ===
     User->>API: **POST /collaborate**<br/>{query, num_agents: 3}
     API->>Coord: Initialize collaboration session
     Coord->>Policy: Select optimal agents
     Policy-->>Coord: Return [Agent1, Agent2, Agent3]
 
-    %% === Parallel Activation ===
+    %% === Agent Activation ===
     par 🔧 **Activate Agents**
         Coord->>Agent1: Assign subtask
         Coord->>Agent2: Assign subtask
@@ -297,7 +304,7 @@ sequenceDiagram
     end
 
     %% === Round 1: Independent Processing ===
-    rect rgb(230,245,255)
+    rect rgb(220,240,255)
         Note over Agent1,LLM: 🌀 **Round 1 — Independent Processing**
         Agent1->>LLM: Send query
         Agent2->>LLM: Send query
@@ -307,8 +314,8 @@ sequenceDiagram
         LLM-->>Agent3: Initial response
     end
 
-    %% === CKM + Gap Detection ===
-    rect rgb(255,245,230)
+    %% === CKM + Gap Detection Phase ===
+    rect rgb(255,245,225)
         Note over Agent1,Gap: 🧠 **Cognitive Knowledge Modeling**
         Agent1->>CKM: Update knowledge state
         Agent2->>CKM: Update knowledge state
@@ -325,9 +332,9 @@ sequenceDiagram
         Gap-->>Agent3: Gap score = 0.78 (**HIGH**)
     end
 
-    %% === Collaboration Round ===
+    %% === Collaborative Round ===
     alt ⚠️ **High Cognitive Gaps Detected**
-        rect rgb(245,255,230)
+        rect rgb(235,255,225)
             Note over Agent1,Agent3: 🤝 **Round 2 — Collaborative Communication**
             Agent1->>Coord: Broadcast insight
             Agent2->>Coord: Request clarification from Agent1
@@ -2126,10 +2133,6 @@ For enterprise support, custom deployments, and SLA agreements:
 ---
 
 <div align="center">
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/sync-system&type=Date)](https://star-history.com/#yourusername/sync-system&Date)
 
 ---
 
