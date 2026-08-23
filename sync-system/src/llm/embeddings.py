@@ -1,6 +1,5 @@
 import hashlib
-import time
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union
 import cohere
 import torch
 from pathlib import Path
@@ -14,6 +13,7 @@ from tenacity import (
 from src.utils.logging import get_logger
 from src.utils.helpers import ensure_dir
 from config.base import config
+from src.llm.batching import DeduplicatedBatch
 
 logger = get_logger("embeddings")
 
@@ -25,18 +25,19 @@ class EmbeddingCache:
         ensure_dir(cache_dir)
         logger.info(f"Initialized embedding cache at {cache_dir}")
 
-    def _get_hash(self, text: str) -> str:
-        return hashlib.md5(text.encode()).hexdigest()
+    def _get_hash(self, text: str, namespace: str) -> str:
+        payload = f"{namespace}\0{text}".encode()
+        return hashlib.sha256(payload).hexdigest()
 
-    def get(self, text: str) -> Optional[torch.Tensor]:
-        cache_file = self.cache_dir / f"{self._get_hash(text)}.pkl"
+    def get(self, text: str, namespace: str) -> Optional[torch.Tensor]:
+        cache_file = self.cache_dir / f"{self._get_hash(text, namespace)}.pkl"
         if cache_file.exists():
             with open(cache_file, "rb") as f:
                 return pickle.load(f)
         return None
 
-    def set(self, text: str, embedding: torch.Tensor):
-        cache_file = self.cache_dir / f"{self._get_hash(text)}.pkl"
+    def set(self, text: str, namespace: str, embedding: torch.Tensor):
+        cache_file = self.cache_dir / f"{self._get_hash(text, namespace)}.pkl"
         with open(cache_file, "wb") as f:
             pickle.dump(embedding, f)
 
@@ -98,42 +99,39 @@ class CohereEmbeddingsClient:
         else:
             single = False
 
-        embeddings = []
-        texts_to_embed = []
-        cached_indices = []
+        plan = DeduplicatedBatch.from_texts(texts)
+        namespace = f"{self.model}:{input_type}"
+        unique_embeddings: list[Optional[torch.Tensor]] = [None] * len(plan.unique_texts)
+        missing_texts: list[str] = []
+        missing_indices: list[int] = []
 
-        for i, text in enumerate(texts):
-            if self.use_cache:
-                cached_emb = self.cache.get(text)
-                if cached_emb is not None:
-                    embeddings.append(cached_emb)
-                    cached_indices.append(i)
-                    continue
+        for index, text in enumerate(plan.unique_texts):
+            cached = self.cache.get(text, namespace) if self.use_cache else None
+            if cached is None:
+                missing_texts.append(text)
+                missing_indices.append(index)
+            else:
+                unique_embeddings[index] = cached
 
-            texts_to_embed.append(text)
-
-        if texts_to_embed:
-            try:
-                response = self._embed_with_retry(
-                    texts=texts_to_embed,
-                    input_type=input_type,
-                )
-
-                new_embeddings = [torch.tensor(emb, dtype=torch.float32) for emb in response.embeddings]
-
+        if missing_texts:
+            response = self._embed_with_retry(texts=missing_texts, input_type=input_type)
+            new_embeddings = [torch.tensor(emb, dtype=torch.float32) for emb in response.embeddings]
+            if len(new_embeddings) != len(missing_texts):
+                raise RuntimeError("embedding provider returned an unexpected number of vectors")
+            for index, text, embedding in zip(missing_indices, missing_texts, new_embeddings):
+                unique_embeddings[index] = embedding
                 if self.use_cache:
-                    for text, emb in zip(texts_to_embed, new_embeddings):
-                        self.cache.set(text, emb)
+                    self.cache.set(text, namespace, embedding)
 
-                embeddings.extend(new_embeddings)
-
-                logger.debug(f"Embedded {len(texts_to_embed)} texts ({len(cached_indices)} from cache)")
-
-            except Exception as e:
-                logger.error(f"Embedding error: {e}")
-                raise
-
-        result = torch.stack(embeddings)
+        if any(embedding is None for embedding in unique_embeddings):
+            raise RuntimeError("embedding batch was not fully resolved")
+        resolved = plan.restore(unique_embeddings)
+        result = torch.stack(resolved)
+        logger.debug(
+            "Resolved %d texts from %d unique values in one provider batch",
+            len(texts),
+            len(missing_texts),
+        )
 
         return result[0] if single else result
 
@@ -143,14 +141,21 @@ class CohereEmbeddingsClient:
         batch_size: int = 96,
         input_type: str = "search_document",
     ) -> torch.Tensor:
-        all_embeddings = []
+        if batch_size < 1 or batch_size > 96:
+            raise ValueError("batch_size must be between 1 and Cohere's 96-text limit")
+        if len(texts) <= batch_size:
+            return self.embed(texts, input_type=input_type)
 
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-            embeddings = self.embed(batch, input_type=input_type)
-            all_embeddings.append(embeddings)
-
-        return torch.cat(all_embeddings, dim=0)
+        # Deduplicate across the entire round before splitting provider calls.
+        plan = DeduplicatedBatch.from_texts(texts)
+        unique_batches = []
+        for start in range(0, len(plan.unique_texts), batch_size):
+            unique_batches.append(
+                self.embed(list(plan.unique_texts[start:start + batch_size]), input_type=input_type)
+            )
+        unique_embeddings = torch.cat(unique_batches, dim=0)
+        restored = plan.restore(list(unique_embeddings))
+        return torch.stack(restored)
 
     def embed_for_reasoning(self, reasoning_text: str) -> torch.Tensor:
         return self.embed(reasoning_text, input_type="clustering")
