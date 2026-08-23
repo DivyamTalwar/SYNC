@@ -78,6 +78,10 @@ Simple Aggregation                          │
 
 ## ✨ Key Features
 
+### Efficient embedding rounds
+
+SYNC now deduplicates messages across a round, namespaces cache entries by model and input type, sends at most one provider request for up to 96 unique texts, and restores vectors to the exact original order. `sync-system/tests/test_embedding_batching.py` guards ordering and failure semantics without requiring a live provider.
+
 ### 🧠 Advanced Neural Architecture
 
 - **State Encoder (512-dim LSTM)**: Embeds dialogue context, task semantics, and collaboration history
