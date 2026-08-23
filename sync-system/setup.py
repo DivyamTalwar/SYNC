@@ -24,10 +24,7 @@ setup(
     keywords="multi-agent llm reinforcement-learning collaboration ai",
     entry_points={
         "console_scripts": [
-            "sync-pretrain=scripts.pretrain_ckm:main",
-            "sync-train=scripts.train_rl:main",
-            "sync-evaluate=scripts.evaluate:main",
-            "sync-demo=scripts.demo:main",
+            "sync=src.cli:main",
         ],
     },
 )
