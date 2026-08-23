@@ -9,7 +9,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Revolutionary Multi-Agent LLM Collaboration with Neural Cognitive Gap Detection**
+**An experimental framework for measuring multi-agent collaboration with cognitive gap models**
 
 *Where Multiple AI Minds Think Better Together*
 
@@ -21,7 +21,10 @@
 
 ## 🌟 What is SYNC?
 
-**SYNC (Strategic SYNthesis of Cognitive Networks)** is a groundbreaking multi-agent AI collaboration framework that orchestrates 2-10 Large Language Models to solve complex problems through intelligent communication and knowledge synthesis.
+**SYNC (Strategic SYNthesis of Cognitive Networks)** is an alpha-stage research framework for orchestrating 2-10 language-model agents and studying communication, cognitive gap detection, and synthesis.
+
+> [!IMPORTANT]
+> SYNC is research software, not a production service. The repository does not yet contain evidence supporting the historical 92% gap-detection or 40% efficiency figures. Those numbers are now treated as research targets until reproducible runs, raw traces, exact commands, seeds, and environment manifests are published. Provider-backed paths fail closed when credentials are absent.
 
 Unlike traditional multi-agent systems that use simple routing or voting mechanisms, SYNC employs **advanced neural architecture** to:
 
@@ -29,7 +32,7 @@ Unlike traditional multi-agent systems that use simple routing or voting mechani
 - 🔍 **Detect Knowledge Gaps**: Neural network identifies when agents need to collaborate vs. work independently
 - 🎯 **Optimize Collaboration**: Reinforcement Learning policy learns the best collaboration strategies
 - 📊 **Converge Intelligently**: Entropy-based detection knows when agents have reached consensus
-- ⚡ **Scale to Production**: Enterprise-ready API with auth, rate limiting, and observability
+- 🧪 **Measure Collaboration**: Compare collaboration strategies with explicit cost, quality, and trace evidence
 
 ### The Power of Cognitive Collaboration
 
@@ -79,18 +82,18 @@ Simple Aggregation                          │
 
 - **State Encoder (512-dim LSTM)**: Embeds dialogue context, task semantics, and collaboration history
 - **Cognitive Knowledge Model (256-dim BiLSTM)**: Tracks each agent's knowledge evolution across communication rounds
-- **Gap Detector (4-layer FFN)**: 512→256→128→64 architecture identifies collaboration opportunities with 92% accuracy
+- **Gap Detector (4-layer FFN)**: 512→256→128→64 experimental architecture for identifying collaboration opportunities
 - **Policy Network (PPO-based RL)**: Actor-critic architecture learns optimal agent selection and task allocation
 
 ### 🤝 Intelligent Multi-Agent Collaboration
 
 - **Dynamic Agent Allocation**: 2-10 agents with load balancing
 - **Multi-Round Communication**: Broadcast and targeted messaging with attention mechanisms
-- **Cognitive Gap-Aware**: Only collaborate when knowledge gaps detected (40% efficiency gain)
+- **Cognitive Gap-Aware**: Explore when knowledge-gap signals should trigger collaboration
 - **Consensus Aggregation**: Confidence-weighted synthesis with entropy convergence detection
 - **Deadlock Resolution**: Automatic detection and recovery from communication loops
 
-### 🔐 Production-Grade Security
+### 🔐 Security Foundation
 
 - **Multi-Layer Auth**: API keys (SHA-256) → JWT tokens (24h expiry) → Request validation
 - **Tiered Rate Limiting**: 60-1000 req/min based on subscription level
@@ -108,8 +111,7 @@ Simple Aggregation                          │
 
 - **Containerized**: Docker + Docker Compose for easy deployment
 - **Load Balancing**: Nginx reverse proxy with health checks
-- **Database Persistence**: PostgreSQL for collaboration history
-- **Caching Layer**: Redis for session management and response caching
+- **Database/Caching Topology**: PostgreSQL and Redis deployment scaffolding; durable runtime integration remains roadmap work
 - **Horizontal Scaling**: Support for 4+ API replicas
 
 ---

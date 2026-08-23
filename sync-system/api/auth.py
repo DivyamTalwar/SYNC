@@ -1,4 +1,5 @@
 import hashlib
+import os
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
@@ -7,7 +8,7 @@ from fastapi import HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
-JWT_SECRET_KEY = secrets.token_urlsafe(32) 
+JWT_SECRET_KEY = os.getenv("SYNC_JWT_SECRET") or secrets.token_urlsafe(32)
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
@@ -124,28 +125,33 @@ async def get_optional_api_key(
         return None
 
 
-def init_default_keys():
-    admin_key = "sync_admin_key_2024"
-    admin_hash = hash_api_key(admin_key)
-    API_KEYS_STORE[admin_hash] = APIKey(
-        key_hash=admin_hash,
-        name="Admin Key",
-        rate_limit_per_minute=1000,
-        is_active=True
-    )
-    
-    test_key = "sync_test_key_2024"
-    test_hash = hash_api_key(test_key)
-    API_KEYS_STORE[test_hash] = APIKey(
-        key_hash=test_hash,
-        name="Test Key",
-        rate_limit_per_minute=60,
-        is_active=True
-    )
-    
-    print(f"Initialized default API keys:")
-    print(f"  Admin: {admin_key}")
-    print(f"  Test: {test_key}")
+def init_configured_keys() -> None:
+    """Install explicitly configured bootstrap keys.
+
+    Format: ``name:key:rate_limit,name:key:rate_limit``. No public or default
+    credential is ever created implicitly.
+    """
+    configured = os.getenv("SYNC_BOOTSTRAP_API_KEYS", "").strip()
+    if not configured:
+        return
+
+    for item in configured.split(","):
+        try:
+            name, key, rate_limit_text = item.split(":", 2)
+            rate_limit = int(rate_limit_text)
+        except ValueError as exc:
+            raise RuntimeError(
+                "Invalid SYNC_BOOTSTRAP_API_KEYS entry; expected name:key:rate_limit"
+            ) from exc
+        if not name or not key or rate_limit < 1:
+            raise RuntimeError("Bootstrap key name/key must be set and rate limit must be positive")
+        key_hash = hash_api_key(key)
+        API_KEYS_STORE[key_hash] = APIKey(
+            key_hash=key_hash,
+            name=name,
+            rate_limit_per_minute=rate_limit,
+            is_active=True,
+        )
 
 
 class RateLimiter:    
@@ -185,4 +191,4 @@ async def check_rate_limit(api_key: APIKey = Depends(get_current_api_key)):
     return api_key
 
 
-init_default_keys()
+init_configured_keys()
