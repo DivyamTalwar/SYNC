@@ -30,4 +30,5 @@ jobs:
       - name: Compile source
         run: python -m compileall -q sync-system/src sync-system/api sync-system/config
       - name: Run tests
-        run: python -m unittest discover -s sync-system/tests -v
+        working-directory: sync-system
+        run: python -m unittest discover -s tests -v
