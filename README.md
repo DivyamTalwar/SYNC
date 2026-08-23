@@ -82,6 +82,14 @@ Simple Aggregation                          │
 
 SYNC now deduplicates messages across a round, namespaces cache entries by model and input type, sends at most one provider request for up to 96 unique texts, and restores vectors to the exact original order. `sync-system/tests/test_embedding_batching.py` guards ordering and failure semantics without requiring a live provider.
 
+### Evidence-first collaboration
+
+- **Evidence Lab** runs learned, random, independent, debate, and no-CKM strategies under the same tasks/seeds and writes raw JSONL plus cost-quality-latency summaries.
+- **Cognitive Trace** records append-only, hash-chained messages and decisions; verify a trace with `sync trace-verify PATH`.
+- **Adaptive Budget Policy** chooses add-agent, critique, synthesize, or stop decisions without exceeding explicit token/round limits.
+
+These primitives provide reproducible receipts; they do not by themselves prove that learned collaboration outperforms a baseline.
+
 ### 🧠 Advanced Neural Architecture
 
 - **State Encoder (512-dim LSTM)**: Embeds dialogue context, task semantics, and collaboration history
